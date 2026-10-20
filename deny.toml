@@ -1,0 +1,36 @@
+# cargo-deny configuration: https://embarkstudios.github.io/cargo-deny/
+
+[graph]
+all-features = true
+
+[advisories]
+# Any RustSec advisory (vulnerability, unmaintained, yanked) fails the check.
+yanked = "deny"
+
+[licenses]
+# Allow list: every licence NOT listed is rejected, including GPL-2.0/3.0, LGPL, AGPL, SSPL,
+# BUSL (Business Source License), Elastic, Commons Clause and custom licences.
+# Permissive licences only (see weft licence policy).
+allow = [
+  "Apache-2.0",
+  "MIT",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Unicode-3.0",
+  "Zlib",
+  # Blue Oak Model License: permissive, OSI approved, includes a patent grant (used by minicbor).
+  "BlueOak-1.0.0",
+]
+# The list is the policy for all weft repositories; not every licence occurs in every one.
+unused-allowed-license = "allow"
+confidence-threshold = 0.9
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

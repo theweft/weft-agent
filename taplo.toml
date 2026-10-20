@@ -1,0 +1,6 @@
+# Build output (including `cargo package` copies) is not ours to format.
+exclude = ["target/**"]
+
+[formatting]
+align_comments = false
+column_width = 100

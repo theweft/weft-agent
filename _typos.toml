@@ -1,0 +1,3 @@
+# Project words the spell checker does not know.
+[default.extend-words]
+cose = "cose" # CBOR Object Signing and Encryption (RFC 9052)

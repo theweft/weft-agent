@@ -1,0 +1,188 @@
+[DOCUMENT]
+TITLE: weft-agent requirements
+VERSION: 0.1 (draft)
+OPTIONS:
+  MARKUP: Text
+
+[GRAMMAR]
+ELEMENTS:
+- TAG: SECTION
+  PROPERTIES:
+    IS_COMPOSITE: True
+  FIELDS:
+  - TITLE: UID
+    TYPE: String
+    REQUIRED: False
+  - TITLE: TITLE
+    TYPE: String
+    REQUIRED: True
+- TAG: TEXT
+  FIELDS:
+  - TITLE: UID
+    TYPE: String
+    REQUIRED: False
+  - TITLE: STATEMENT
+    TYPE: String
+    REQUIRED: True
+- TAG: REQUIREMENT
+  FIELDS:
+  - TITLE: UID
+    TYPE: String
+    REQUIRED: True
+  - TITLE: STATUS
+    TYPE: SingleChoice(Draft, Active, Deleted)
+    REQUIRED: True
+  - TITLE: VERIFICATION
+    TYPE: SingleChoice(Test, Analysis, Inspection, Demonstration)
+    REQUIRED: True
+  - TITLE: TITLE
+    TYPE: String
+    REQUIRED: True
+  - TITLE: STATEMENT
+    TYPE: String
+    REQUIRED: True
+  - TITLE: RATIONALE
+    TYPE: String
+    REQUIRED: False
+  - TITLE: SATISFIES
+    HUMAN_TITLE: Satisfies (system requirements, weft-design)
+    TYPE: String
+    REQUIRED: False
+  - TITLE: STANDARDS
+    HUMAN_TITLE: Standards (draft mapping)
+    TYPE: String
+    REQUIRED: False
+  - TITLE: FACTS
+    HUMAN_TITLE: Facts (facts.toml in the design repository)
+    TYPE: String
+    REQUIRED: False
+  RELATIONS:
+  - TYPE: Parent
+  - TYPE: File
+
+[TEXT]
+STATEMENT: >>>
+Component requirements of weft-agent. Each is traced to implementing functions in crates/*/src and to tests in crates/*/tests by relation markers; the gate in crates/weft-agent/tests/requirements.rs fails when an Active requirement verified by Test lacks either. SATISFIES names the system requirements in weft-design/requirements/system.sdoc.
+<<<
+
+[[SECTION]]
+TITLE: Document sync and decisions
+
+[REQUIREMENT]
+UID: AGT-001
+STATUS: Active
+VERIFICATION: Test
+TITLE: Convergence over best-effort transport
+STATEMENT: >>>
+Nodes shall exchange documents by push and anti-entropy pull (summary, inventory, fetch) so that, once the network allows it, all honest nodes hold the same verified documents, despite loss, delay, reordering, duplicates and partitions.
+<<<
+RATIONALE: >>>
+SYS-032 permits best-effort transports; correctness must not depend on transport guarantees.
+<<<
+SATISFIES: SYS-032, SYS-021
+
+[REQUIREMENT]
+UID: AGT-002
+STATUS: Active
+VERIFICATION: Test
+TITLE: Content addressing
+STATEMENT: >>>
+Documents shall be stored by the SHA-256 of their bytes, the digest the verifier uses; a document arriving again over any path shall be dropped.
+<<<
+RATIONALE: >>>
+Several uplinks and relays deliver the same document; deduplication needs no coordination.
+<<<
+SATISFIES: SYS-005, SYS-032
+
+[REQUIREMENT]
+UID: AGT-003
+STATUS: Active
+VERIFICATION: Test
+TITLE: Only verified documents travel
+STATEMENT: >>>
+A node shall share (advertise, serve, forward) only documents its decider has verified. Intrinsically invalid documents (malformed, bad signature, wrong tenant) shall be quarantined for good; documents of unknown signers or without authorization shall stay local and pending until they verify.
+<<<
+RATIONALE: >>>
+Otherwise any node could inject well-formed documents signed by arbitrary keys and the fleet would store and spread them forever (found by the simulation, 2026-10-20).
+<<<
+SATISFIES: SYS-021, SYS-016
+
+[REQUIREMENT]
+UID: AGT-004
+STATUS: Active
+VERIFICATION: Test
+TITLE: Persist before acting
+STATEMENT: >>>
+The decider shall save the new verifier state before executing any instruction, and shall execute nothing if saving fails.
+<<<
+RATIONALE: >>>
+Acting on a decision whose anti-rollback state was lost would allow rollback after a crash. The atomic file store itself (docs/11) is still to be built.
+<<<
+SATISFIES: SYS-006
+
+[REQUIREMENT]
+UID: AGT-005
+STATUS: Active
+VERIFICATION: Test
+TITLE: Path-independent decisions
+STATEMENT: >>>
+After convergence, every device's installed artifacts, applied configuration, conflicts and withheld components shall equal a fresh evaluation of the same documents, whatever path, order or relay delivered them.
+<<<
+RATIONALE: >>>
+Same inputs, same decision (SYS-017); a malicious relay can only delay (SYS-021).
+<<<
+SATISFIES: SYS-017, SYS-021
+
+[REQUIREMENT]
+UID: AGT-006
+STATUS: Active
+VERIFICATION: Test
+TITLE: Restart recovery
+STATEMENT: >>>
+A restarted node shall load its saved verifier state, refuse corrupt state, and recover missing documents from peers; until they are back, affected components are withheld.
+<<<
+RATIONALE: >>>
+Restarts must never reset anti-rollback marks or act on incomplete information.
+<<<
+SATISFIES: SYS-006, SYS-013
+
+[REQUIREMENT]
+UID: AGT-007
+STATUS: Active
+VERIFICATION: Test
+TITLE: Deterministic simulation
+STATEMENT: >>>
+The node runtime shall behave deterministically for the same inputs and timing, so that a simulation run can be replayed exactly from its seed.
+<<<
+RATIONALE: >>>
+A failing seed in CI must be reproducible on any developer machine.
+<<<
+
+[REQUIREMENT]
+UID: AGT-008
+STATUS: Active
+VERIFICATION: Test
+TITLE: Bounded input from peers
+STATEMENT: >>>
+Everything a peer sends shall be bounded: document size, number of stored, pending and quarantined documents, and digests per message; malformed messages are dropped.
+<<<
+RATIONALE: >>>
+Peers are untrusted.
+<<<
+SATISFIES: SYS-016
+
+[REQUIREMENT]
+UID: AGT-009
+STATUS: Active
+VERIFICATION: Test
+TITLE: Portable topic keys
+STATEMENT: >>>
+Topic keys shall consist of segments of [a-z0-9_-], within the segment, depth and length limits, so that they are valid on every transport.
+<<<
+RATIONALE: >>>
+Keys must map to MQTT, Zenoh and NATS without escaping.
+<<<
+SATISFIES: SYS-009
+FACTS: pubsub.topic.segment_max, pubsub.topic.max_depth, pubsub.topic.max_len
+
+[[/SECTION]]

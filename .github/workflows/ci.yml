@@ -1,0 +1,29 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      # Pin actions to commit SHAs before the first release (OpenSSF Scorecard); Dependabot keeps them current.
+      - uses: actions/checkout@v4
+        with:
+          path: weft-agent
+          persist-credentials: false
+      # weft-verifier is a path dependency (../weft-verifier), so both are tested together.
+      - uses: actions/checkout@v4
+        with:
+          repository: theweft/weft-verifier
+          path: weft-verifier
+          persist-credentials: false
+      - uses: cachix/install-nix-action@v31
+      # Same pinned environment as local development.
+      - run: nix develop --command just ci
+        working-directory: weft-agent

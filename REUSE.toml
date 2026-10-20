@@ -1,0 +1,9 @@
+# REUSE (https://reuse.software): licence and copyright for every file in this repository.
+# Source files additionally carry SPDX headers; with "closest", a file's own header wins.
+version = 1
+
+[[annotations]]
+path = "**"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 The weft authors"
+SPDX-License-Identifier = "MIT"

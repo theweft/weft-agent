@@ -1,0 +1,27 @@
+[package]
+name = "weft-agent"
+description = "weft agent for Linux devices and gateways: node runtime (sync, decider, executor)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+publish = false
+
+[dependencies]
+weft-verifier.workspace = true
+weft-transport.workspace = true
+weft-sync.workspace = true
+weft-decider.workspace = true
+tokio = { workspace = true, features = ["macros", "sync", "time"] }
+
+[dev-dependencies]
+weft-transport = { workspace = true, features = ["turmoil"] }
+turmoil.workspace = true
+tokio = { workspace = true, features = ["macros", "sync", "time", "rt"] }
+ed25519-dalek.workspace = true
+
+[lints]
+workspace = true

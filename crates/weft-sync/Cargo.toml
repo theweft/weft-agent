@@ -1,0 +1,16 @@
+[package]
+name = "weft-sync"
+description = "weft document sync: content-addressed store, push and anti-entropy pull (sans I/O)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+publish = false
+
+[dependencies]
+weft-verifier.workspace = true
+
+[lints]
+workspace = true
