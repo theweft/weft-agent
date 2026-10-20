@@ -474,7 +474,7 @@ dependencies = [
 
 [[package]]
 name = "weft-agent"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "ed25519-dalek",
  "tokio",
@@ -487,7 +487,7 @@ dependencies = [
 
 [[package]]
 name = "weft-decider"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "ed25519-dalek",
  "weft-verifier",
@@ -495,14 +495,14 @@ dependencies = [
 
 [[package]]
 name = "weft-sync"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "weft-verifier",
 ]
 
 [[package]]
 name = "weft-transport"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "turmoil",
  "weft-verifier",
@@ -510,7 +510,7 @@ dependencies = [
 
 [[package]]
 name = "weft-verifier"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "ed25519-dalek",
  "minicbor",

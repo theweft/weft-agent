@@ -7,8 +7,9 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
+# Published files: sources and the licence (repository tests and requirements stay in git).
+include = ["src/**/*.rs", "LICENSE"]
 readme = "../../README.md"
-publish = false
 
 [dependencies]
 weft-verifier.workspace = true

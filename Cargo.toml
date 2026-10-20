@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/*"]
 
 [workspace.package]
-version = "0.0.0"
+version = "0.0.1"
 edition = "2024"
 rust-version = "1.99"
 license = "MIT"
@@ -12,10 +12,10 @@ homepage = "https://theweft.org"
 
 # Exact versions: updates are deliberate (Dependabot PR + review).
 [workspace.dependencies]
-weft-verifier = { version = "=0.0.2", path = "../weft-verifier" }
-weft-transport = { version = "=0.0.0", path = "crates/weft-transport" }
-weft-sync = { version = "=0.0.0", path = "crates/weft-sync" }
-weft-decider = { version = "=0.0.0", path = "crates/weft-decider" }
+weft-verifier = { version = "=0.0.3", path = "../weft-verifier" }
+weft-transport = { version = "=0.0.1", path = "crates/weft-transport" }
+weft-sync = { version = "=0.0.1", path = "crates/weft-sync" }
+weft-decider = { version = "=0.0.1", path = "crates/weft-decider" }
 tokio = { version = "=1.53.2", default-features = false }
 turmoil = { version = "=0.7.2" }
 ed25519-dalek = { version = "=3.0.0", default-features = false }

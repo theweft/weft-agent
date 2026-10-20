@@ -7,7 +7,8 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
-publish = false
+# Published files: sources and the licence (repository tests and requirements stay in git).
+include = ["src/**/*.rs", "LICENSE"]
 
 [features]
 # Adapter for deterministic simulations with turmoil.
