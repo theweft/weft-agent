@@ -5,7 +5,7 @@
 # sandboxed as user weft, two read-only USB sticks with signed documents, and a power cut in
 # the middle of a round.
 #
-#   nix build .#checks.x86_64-linux.l1-vm --override-input weft-verifier git+file:../weft-verifier -L
+#   nix build .#checks.x86_64-linux.l1-vm --override-input weft-verifier 'git+file:../weft-verifier?shallow=1' -L
 {
   pkgs,
   weft-agent,

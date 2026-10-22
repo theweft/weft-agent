@@ -58,11 +58,11 @@ requirements:
 
 # NixOS VM end-to-end test (Linux with KVM): shipped systemd units, USB sticks, power cut.
 vm:
-    nix build .#checks.$(nix eval --impure --raw --expr builtins.currentSystem).l1-vm --override-input weft-verifier git+file:../weft-verifier -L
+    nix build .#checks.$(nix eval --impure --raw --expr builtins.currentSystem).l1-vm --override-input weft-verifier 'git+file:../weft-verifier?shallow=1' -L
 
 # The VM test with an interactive driver: start_all(), run steps by hand, inspect the VM.
 vm-interactive:
-    nix run .#checks.$(nix eval --impure --raw --expr builtins.currentSystem).l1-vm.driverInteractive --override-input weft-verifier git+file:../weft-verifier
+    nix run .#checks.$(nix eval --impure --raw --expr builtins.currentSystem).l1-vm.driverInteractive --override-input weft-verifier 'git+file:../weft-verifier?shallow=1'
 
 # Everything CI checks (the VM test runs as its own CI job).
 ci: fmt-check clippy test targets deny licenses typos doc requirements

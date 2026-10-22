@@ -8,7 +8,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # The path dependency ../weft-verifier. CI and `just vm` override it with the checkout next
-    # to this repository: --override-input weft-verifier git+file:../weft-verifier
+    # to this repository: --override-input weft-verifier 'git+file:../weft-verifier?shallow=1'
     weft-verifier = {
       url = "github:theweft/weft-verifier";
       flake = false;

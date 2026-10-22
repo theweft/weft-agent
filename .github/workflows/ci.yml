@@ -63,4 +63,4 @@ jobs:
           gc-max-store-size-linux: 4G
       - name: NixOS VM end-to-end test
         working-directory: weft-agent
-        run: nix build .#checks.x86_64-linux.l1-vm --override-input weft-verifier git+file:../weft-verifier -L
+        run: nix build .#checks.x86_64-linux.l1-vm --override-input weft-verifier 'git+file:../weft-verifier?shallow=1' -L
