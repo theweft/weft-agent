@@ -13,6 +13,8 @@
 use std::time::Duration;
 
 pub mod executor;
+#[cfg(unix)]
+pub mod ipc;
 mod json;
 pub mod keys;
 pub mod offline;

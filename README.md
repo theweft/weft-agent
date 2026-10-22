@@ -1,8 +1,8 @@
 <h1><img src="https://theweft.org/brand/repos/weft-agent.svg" alt="" width="44" height="44" align="absmiddle"> weft-agent</h1>
 
 > **Status: experimental (0.0.x).** Works offline (L1): inbox directory, decisions, config files,
-> install hook, report. Document sync tested in a deterministic simulation. No real network
-> transports and no process separation yet.
+> install hook, report, with the decider and executor as separate, sandboxed processes. Document
+> sync tested in a deterministic simulation. No network transports yet.
 > Like all of weft, it is built heavily with AI; see
 > [How weft is made](https://github.com/theweft/weft-design#how-weft-is-made).
 
@@ -44,6 +44,21 @@ Each round (every `--interval` seconds, or once with `--once`):
 Documents are made with [weft-cli](https://github.com/theweft/weft-cli) (`weft config`, `weft
 deploy`, ...). Hooks are run with values only in environment variables and at least once, so
 they must be idempotent. The system clock is not trusted unless `--trust-system-clock` is given.
+
+### Separated: unprivileged decider, privileged executor
+
+```sh
+weft-agent executor --socket /run/weft/executor.sock        # root; hooks from WEFT_ON_CONFIG / WEFT_ON_INSTALL
+weft-agent decider  --executor-socket /run/weft/executor.sock --tenant acme --anchor root.pub ...
+```
+
+The decider parses all untrusted input (inbox files, documents) and runs as user `weft` without
+privileges, without network and on a read-only system
+([dist/systemd/weft-decider.service](dist/systemd/weft-decider.service)). It sends the executor
+only typed instructions over a Unix socket (`root:weft`, 0660): *apply this configuration* or
+*install this artifact*. The executor re-checks the configuration hash and the component path,
+refuses everything else, and runs the hooks it was configured with; the decider cannot name a
+command or a directory. `weft-agent run` keeps both in one process.
 
 ## Crates
 

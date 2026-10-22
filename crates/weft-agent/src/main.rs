@@ -3,6 +3,11 @@
 
 //! `weft-agent`: the L1 device agent. Reads signed documents from an inbox directory, lets
 //! weft-verifier decide, writes configuration and calls the install hook, and reports.
+//!
+//! - `weft-agent run`: everything in one process (development, simple setups).
+//! - `weft-agent decider` + `weft-agent executor`: the separated form (weft-design docs/20 §1).
+//!   The decider parses all untrusted input and runs without privileges; the executor runs
+//!   with privileges and accepts only typed instructions over a Unix socket.
 // Doc comments here are clap help texts, shown as plain text: no Markdown backticks.
 #![allow(clippy::doc_markdown)]
 
@@ -10,10 +15,11 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use clap::Parser;
+use clap::{Args, Parser, Subcommand};
 use weft_agent::executor::HookExecutor;
 use weft_agent::keys::parse_public;
 use weft_agent::offline::{OfflineAgent, Paths};
+use weft_decider::Executor;
 use weft_verifier::{DeviceFacts, TrustAnchor};
 
 #[derive(Parser)]
@@ -22,7 +28,40 @@ use weft_verifier::{DeviceFacts, TrustAnchor};
     version,
     about = "weft device agent (L1: inbox, decide, execute, report)"
 )]
-struct Args {
+struct Cli {
+    #[command(subcommand)]
+    command: Command,
+}
+
+#[derive(Subcommand)]
+enum Command {
+    /// Decider and executor in one process.
+    Run {
+        #[command(flatten)]
+        decider: DeciderArgs,
+        #[command(flatten)]
+        executor: ExecutorArgs,
+    },
+    /// Unprivileged part: inbox, documents, decisions, report. Sends instructions to the executor.
+    Decider {
+        #[command(flatten)]
+        decider: DeciderArgs,
+        /// Socket of the executor.
+        #[arg(long, default_value = "/run/weft/executor.sock")]
+        executor_socket: PathBuf,
+    },
+    /// Privileged part: performs instructions from the decider, nothing else.
+    Executor {
+        #[command(flatten)]
+        executor: ExecutorArgs,
+        /// Socket to listen on (mode 0660; restrict its directory to the decider's group).
+        #[arg(long, default_value = "/run/weft/executor.sock")]
+        socket: PathBuf,
+    },
+}
+
+#[derive(Args)]
+struct DeciderArgs {
     /// Device name in reports.
     #[arg(long, default_value = "device")]
     name: String,
@@ -44,16 +83,6 @@ struct Args {
     /// Directory for report.json (default: <state-dir>/outbox).
     #[arg(long)]
     outbox: Option<PathBuf>,
-    /// Directory for <component>.json configuration files.
-    #[arg(long, default_value = "/etc/weft/config")]
-    config_dir: PathBuf,
-    /// Command run after a configuration file changed (env: WEFT_COMPONENT, WEFT_CONFIG,
-    /// WEFT_CONFIG_HASH).
-    #[arg(long)]
-    on_config: Option<String>,
-    /// Command that installs an artifact (env: WEFT_COMPONENT, WEFT_ARTIFACT = SHA-256 hex).
-    #[arg(long)]
-    on_install: Option<String>,
     /// Use the system clock as a trusted lower bound on time (only with a trusted time source).
     #[arg(long)]
     trust_system_clock: bool,
@@ -65,7 +94,31 @@ struct Args {
     interval: u64,
 }
 
-fn run(args: &Args) -> Result<(), String> {
+#[derive(Args)]
+struct ExecutorArgs {
+    /// Directory for <component>.json configuration files.
+    #[arg(long, env = "WEFT_CONFIG_DIR", default_value = "/etc/weft/config")]
+    config_dir: PathBuf,
+    /// Command run after a configuration file changed (env: WEFT_COMPONENT, WEFT_CONFIG,
+    /// WEFT_CONFIG_HASH).
+    #[arg(long, env = "WEFT_ON_CONFIG")]
+    on_config: Option<String>,
+    /// Command that installs an artifact (env: WEFT_COMPONENT, WEFT_ARTIFACT = SHA-256 hex).
+    #[arg(long, env = "WEFT_ON_INSTALL")]
+    on_install: Option<String>,
+}
+
+impl ExecutorArgs {
+    fn hooks(&self) -> HookExecutor {
+        HookExecutor {
+            config_dir: self.config_dir.clone(),
+            on_config: self.on_config.clone(),
+            on_install: self.on_install.clone(),
+        }
+    }
+}
+
+fn decide(args: &DeciderArgs, executor: impl Executor) -> Result<(), String> {
     let anchors = args
         .anchors
         .iter()
@@ -106,11 +159,6 @@ fn run(args: &Args) -> Result<(), String> {
         state_dir: args.state_dir.clone(),
         inbox: args.inbox.clone(),
     };
-    let executor = HookExecutor {
-        config_dir: args.config_dir.clone(),
-        on_config: args.on_config.clone(),
-        on_install: args.on_install.clone(),
-    };
     let mut agent = OfflineAgent::open(&args.name, anchors, facts, &paths, executor)
         .map_err(|e| e.to_string())?;
     loop {
@@ -131,8 +179,39 @@ fn run(args: &Args) -> Result<(), String> {
     }
 }
 
+/// Dispatch. The decider is built without executor options: hooks and directories exist only on
+/// the executor's side.
+///
+/// @relation(AGT-018, scope=function)
+fn run(cli: Cli) -> Result<(), String> {
+    match cli.command {
+        Command::Run { decider, executor } => decide(&decider, executor.hooks()),
+        #[cfg(unix)]
+        Command::Decider {
+            decider,
+            executor_socket,
+        } => decide(
+            &decider,
+            weft_agent::ipc::SocketExecutor {
+                socket: executor_socket,
+            },
+        ),
+        #[cfg(unix)]
+        Command::Executor { executor, socket } => {
+            let listener =
+                weft_agent::ipc::bind(&socket).map_err(|e| format!("{}: {e}", socket.display()))?;
+            println!("executor listening on {}", socket.display());
+            weft_agent::ipc::serve(&listener, &mut executor.hooks()).map_err(|e| e.to_string())
+        }
+        #[cfg(not(unix))]
+        Command::Decider { .. } | Command::Executor { .. } => {
+            Err("the separated decider/executor needs Unix sockets; use `run`".into())
+        }
+    }
+}
+
 fn main() -> ExitCode {
-    match run(&Args::parse()) {
+    match run(Cli::parse()) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("weft-agent: {e}");

@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: 2026 The weft authors
+# SPDX-License-Identifier: MIT
+#
+# The privileged half of weft-agent: performs the decider's instructions, nothing else.
+# It needs whatever the install and config hooks need (an OTA tool writes partitions), so it
+# is restricted less than the decider; tighten ReadWritePaths for your hooks.
+
+[Unit]
+Description=weft executor (performs verified instructions)
+Documentation=https://github.com/theweft/weft-agent
+
+[Service]
+ExecStart=/usr/bin/weft-agent executor --socket /run/weft/executor.sock
+# WEFT_CONFIG_DIR, WEFT_ON_CONFIG, WEFT_ON_INSTALL, see executor.env.example.
+EnvironmentFile=-/etc/weft/executor.env
+User=root
+Group=weft
+# /run/weft is root:weft 0750: only the decider's group reaches the socket (0660).
+RuntimeDirectory=weft
+RuntimeDirectoryMode=0750
+UMask=0007
+ProtectHome=yes
+PrivateTmp=yes
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

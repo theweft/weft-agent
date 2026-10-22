@@ -1,0 +1,52 @@
+# SPDX-FileCopyrightText: 2026 The weft authors
+# SPDX-License-Identifier: MIT
+#
+# The unprivileged half of weft-agent: reads the inbox, verifies documents, decides, reports.
+# It parses all untrusted input, so it gets no privileges, no network and a read-only system.
+
+[Unit]
+Description=weft decider (verifies documents and decides)
+Documentation=https://github.com/theweft/weft-agent
+Requires=weft-executor.service
+After=weft-executor.service
+
+[Service]
+ExecStart=/usr/bin/weft-agent decider --state-dir /var/lib/weft --executor-socket /run/weft/executor.sock $WEFT_DECIDER_ARGS
+# WEFT_TENANT and WEFT_DECIDER_ARGS (anchors, labels, inbox), see decider.env.example.
+EnvironmentFile=/etc/weft/decider.env
+User=weft
+Group=weft
+StateDirectory=weft
+StateDirectoryMode=0700
+
+# No privileges, no network: the socket to the executor is all it can reach.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+PrivateNetwork=yes
+RestrictAddressFamilies=AF_UNIX
+# Read-only system; writable only its state directory.
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+UMask=0077
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

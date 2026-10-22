@@ -21,6 +21,7 @@ use std::process::Command;
 use weft_decider::{ExecError, Executor, StdFs, write_atomic};
 use weft_verifier::Instruction;
 use weft_verifier::cbor::{self, Limits};
+use weft_verifier::crypto::sha256;
 
 use crate::{hex, json};
 
@@ -102,6 +103,11 @@ impl Executor for HookExecutor {
                 hash,
                 config,
             } => {
+                if sha256(config) != *hash {
+                    return Err(ExecError(format!(
+                        "config of {component} does not match its hash"
+                    )));
+                }
                 let value = cbor::decode(config, &Limits::DEFAULT)
                     .map_err(|e| ExecError(format!("config of {component}: {e:?}")))?;
                 let text = serde_json::to_string_pretty(&json::to_json(&value))

@@ -48,7 +48,7 @@ impl Device {
         let out = Command::new(env!("CARGO_BIN_EXE_weft-agent"))
             .current_dir(&self.dir)
             .args([
-                "--once", "--tenant", TENANT, "--anchor", "root.pub", "--label", "line=l1",
+                "run", "--once", "--tenant", TENANT, "--anchor", "root.pub", "--label", "line=l1",
             ])
             .args([
                 "--state-dir",

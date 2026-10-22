@@ -276,4 +276,43 @@ A crash between a hook and the save repeats the hook; hooks must be idempotent.
 <<<
 SATISFIES: SYS-006
 
+[REQUIREMENT]
+UID: AGT-017
+STATUS: Active
+VERIFICATION: Test
+TITLE: Typed executor protocol
+STATEMENT: >>>
+The executor shall accept only two typed requests over its socket (apply configuration, install an artifact), as bounded, deterministic CBOR frames; it shall refuse anything else, re-check that a configuration matches its hash and that a component name is a safe path, and keep serving after malformed input.
+<<<
+RATIONALE: >>>
+The privileged process parses almost nothing and cannot be asked for arbitrary actions (docs/07 §2, docs/20 §1).
+<<<
+SATISFIES: SYS-003, SYS-016
+
+[REQUIREMENT]
+UID: AGT-018
+STATUS: Active
+VERIFICATION: Test
+TITLE: Separated, unprivileged decider
+STATEMENT: >>>
+The decider shall be able to run as its own process without privileges, without network and on a read-only system, and shall not be able to name commands, hooks or directories for the executor; those are configured on the executor's side only.
+<<<
+RATIONALE: >>>
+A flaw in the code that parses untrusted documents yields a sandboxed process that can only request verified actions. Sandboxing: dist/systemd/weft-decider.service.
+<<<
+SATISFIES: SYS-003
+
+[REQUIREMENT]
+UID: AGT-019
+STATUS: Active
+VERIFICATION: Test
+TITLE: Executor outages are safe
+STATEMENT: >>>
+If the executor is unreachable or fails, the instruction shall be reported as failed, not recorded as executed, and retried in a later round.
+<<<
+RATIONALE: >>>
+Restarts of either process must not lose or duplicate recorded results.
+<<<
+SATISFIES: SYS-006, SYS-008
+
 [[/SECTION]]
