@@ -1,7 +1,8 @@
 <h1><img src="https://theweft.org/brand/repos/weft-agent.svg" alt="" width="44" height="44" align="absmiddle"> weft-agent</h1>
 
-> **Status: experimental (0.0.x).** First milestone: document sync and decisions, tested in a
-> deterministic simulation. No real transports, no executor backends, no process separation yet.
+> **Status: experimental (0.0.x).** Works offline (L1): inbox directory, decisions, config files,
+> install hook, report. Document sync tested in a deterministic simulation. No real network
+> transports and no process separation yet.
 > Like all of weft, it is built heavily with AI; see
 > [How weft is made](https://github.com/theweft/weft-design#how-weft-is-made).
 
@@ -21,14 +22,37 @@ path, lets the verifier decide, saves the decision state and executes the result
                                    calls SWUpdate / Podman / systemd; nothing else
 ```
 
+## L1: a device agent without weft networking
+
+```sh
+weft-agent --tenant acme --anchor root.pub --label site=s1 --label line=l1 \
+  --state-dir /var/lib/weft --inbox /media/usb/weft --config-dir /etc/weft/config \
+  --on-config 'systemctl reload "$WEFT_COMPONENT"' \
+  --on-install 'my-ota-tool install --sha256 "$WEFT_ARTIFACT"'
+```
+
+Each round (every `--interval` seconds, or once with `--once`):
+
+1. reads signed documents from the inbox (never modifies it) and stores new ones in
+   `<state-dir>/documents/`, before deciding;
+2. lets weft-verifier decide; the verifier state is saved durably *before* anything runs;
+3. writes the effective configuration to `<config-dir>/<component>.json` and runs `--on-config`;
+   runs `--on-install` with `WEFT_COMPONENT` and `WEFT_ARTIFACT` (SHA-256) for installs;
+4. writes `<state-dir>/outbox/report.json`: installed, applied, executed, failed, conflicts,
+   withheld, rejected, pending.
+
+Documents are made with [weft-cli](https://github.com/theweft/weft-cli) (`weft config`, `weft
+deploy`, ...). Hooks are run with values only in environment variables and at least once, so
+they must be idempotent. The system clock is not trusted unless `--trust-system-clock` is given.
+
 ## Crates
 
 | Crate | Contents |
 |---|---|
 | [`weft-transport`](crates/weft-transport) | Transport contract (best-effort publish/subscribe, portable topic keys) and a turmoil adapter for simulations |
 | [`weft-sync`](crates/weft-sync) | Document sync without I/O: content-addressed store, push plus anti-entropy pull, pending vs. shared, quarantine, limits |
-| [`weft-decider`](crates/weft-decider) | Runs `weft_verifier::step`, saves the state **before** acting, drives the executor, classifies documents for sync |
-| [`weft-agent`](crates/weft-agent) | Node runtime that ties them together; the simulation and the requirements gate live in its tests |
+| [`weft-decider`](crates/weft-decider) | Runs `weft_verifier::step`, saves the state **before** acting (durable, atomic `FileStore`, power-loss tested), drives the executor, classifies documents for sync |
+| [`weft-agent`](crates/weft-agent) | The `weft-agent` binary (L1: inbox, document store, config and install hook executor, report) and the networked node runtime; the simulation and the requirements gate live in its tests |
 
 ## What the simulation checks
 
@@ -68,7 +92,7 @@ just ci              # everything CI checks
 
 ## Requirements
 
-[requirements/agent.sdoc](requirements/agent.sdoc) (StrictDoc): AGT-001 to AGT-009, each
+[requirements/agent.sdoc](requirements/agent.sdoc) (StrictDoc): AGT-001 to AGT-016, each
 satisfying system requirements in
 [weft-design](https://github.com/theweft/weft-design/blob/main/requirements/system.sdoc) and traced
 to functions and tests with `@relation` markers. `cargo test` fails when an active requirement has

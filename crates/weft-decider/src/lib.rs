@@ -13,7 +13,7 @@ use std::fmt;
 
 pub mod file_store;
 
-pub use file_store::{FileStore, Fs, StdFs};
+pub use file_store::{FileStore, Fs, StdFs, write_atomic};
 
 use weft_verifier::cbor::Limits;
 use weft_verifier::state::StateError;

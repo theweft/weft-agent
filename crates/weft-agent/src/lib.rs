@@ -12,10 +12,25 @@
 
 use std::time::Duration;
 
+pub mod executor;
+mod json;
+pub mod keys;
+pub mod offline;
+pub mod storage;
+
 use tokio::sync::mpsc;
 use weft_decider::{Decider, DeciderError, Executor, Outcome, StateStore};
 use weft_sync::{Limits, Message, Outgoing, Sync, Target};
 use weft_transport::{Key, KeyError, Transport, TransportError};
+
+/// Lowercase hex.
+pub fn hex(bytes: &[u8]) -> String {
+    use std::fmt::Write as _;
+    bytes.iter().fold(String::new(), |mut s, b| {
+        let _ = write!(s, "{b:02x}");
+        s
+    })
+}
 
 /// Static configuration of a node.
 #[derive(Clone, Debug)]

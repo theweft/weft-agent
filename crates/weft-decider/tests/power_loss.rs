@@ -22,7 +22,7 @@
 
 use std::cell::Cell;
 use std::io::{self, Write as _};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::time::Duration;
 
@@ -79,6 +79,12 @@ impl Fs for SimFs {
         } else {
             simfs::sync_dir(dir)
         }
+    }
+    fn list(&self, _dir: &Path) -> io::Result<Vec<PathBuf>> {
+        Ok(Vec::new())
+    }
+    fn remove(&self, path: &Path) -> io::Result<()> {
+        simfs::remove_file(path)
     }
 }
 

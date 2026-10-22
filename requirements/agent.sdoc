@@ -198,4 +198,82 @@ docs/11. Tested with power cuts at every point of the save on turmoil's simulate
 <<<
 SATISFIES: SYS-006
 
+[REQUIREMENT]
+UID: AGT-011
+STATUS: Active
+VERIFICATION: Test
+TITLE: Inbox directory
+STATEMENT: >>>
+The agent shall take documents from an inbox directory (for example a USB stick or files dropped by the adopter's own transport), reading it only, taking regular, non-hidden files up to the size limit, and treating every file as untrusted.
+<<<
+RATIONALE: >>>
+L1: weft adds trust without its own communication (docs/14 §2). A read-only stick must work.
+<<<
+SATISFIES: SYS-020, SYS-021
+
+[REQUIREMENT]
+UID: AGT-012
+STATUS: Active
+VERIFICATION: Test
+TITLE: Persistent documents
+STATEMENT: >>>
+Every document the agent holds shall be stored in a content-addressed directory before the decider sees it, and loaded on start, so that an offline device keeps its decisions across reboots.
+<<<
+RATIONALE: >>>
+Without the documents, the verifier withholds components whose accepted documents are missing (fail safe); on an offline device nobody would bring them back.
+<<<
+SATISFIES: SYS-020, SYS-013
+
+[REQUIREMENT]
+UID: AGT-013
+STATUS: Active
+VERIFICATION: Test
+TITLE: Outbox report
+STATEMENT: >>>
+After every round the agent shall write a report (installed, applied, executed and failed actions, conflicts, withheld components, rejected and pending documents) atomically to an outbox directory.
+<<<
+RATIONALE: >>>
+Reported state in weft terms, independent of how it travels (SYS-008); the adopter's tools read JSON.
+<<<
+SATISFIES: SYS-008, SYS-011
+
+[REQUIREMENT]
+UID: AGT-014
+STATUS: Active
+VERIFICATION: Test
+TITLE: Config files
+STATEMENT: >>>
+The executor shall write the effective configuration of a component atomically as JSON to the config directory, at a path derived from the component name that cannot leave that directory, and then run the optional config hook.
+<<<
+RATIONALE: >>>
+Services read plain files; a component name from a document must never become a path outside the config directory.
+<<<
+SATISFIES: SYS-003
+
+[REQUIREMENT]
+UID: AGT-015
+STATUS: Active
+VERIFICATION: Test
+TITLE: Install hook
+STATEMENT: >>>
+The executor shall install an artifact by running the configured install hook with the component and the artifact digest in environment variables, never interpolated into the command; a failing or missing hook is reported, not recorded as installed, and retried.
+<<<
+RATIONALE: >>>
+L1 keeps the adopter's own OTA tool; values from documents must not become shell code.
+<<<
+SATISFIES: SYS-003
+
+[REQUIREMENT]
+UID: AGT-016
+STATUS: Active
+VERIFICATION: Test
+TITLE: Executed results survive restarts
+STATEMENT: >>>
+What is installed and applied shall be saved after each round and loaded on start, so a reboot does not repeat installs. Delivery to hooks is at least once.
+<<<
+RATIONALE: >>>
+A crash between a hook and the save repeats the hook; hooks must be idempotent.
+<<<
+SATISFIES: SYS-006
+
 [[/SECTION]]

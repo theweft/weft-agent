@@ -383,6 +383,14 @@ impl Sync {
         self.store.keys().copied().collect()
     }
 
+    /// The bytes of a shared or pending document.
+    pub fn get(&self, digest: &Digest) -> Option<&[u8]> {
+        self.store
+            .get(digest)
+            .or_else(|| self.pending.get(digest))
+            .map(Vec::as_slice)
+    }
+
     /// Digests of pending (not yet verified) documents, in order.
     pub fn pending(&self) -> BTreeSet<Digest> {
         self.pending.keys().copied().collect()

@@ -54,6 +54,39 @@ pub trait Fs {
     ///
     /// Any I/O error.
     fn sync_dir(&self, dir: &Path) -> io::Result<()>;
+
+    /// Regular files directly in `dir`, sorted; empty if `dir` does not exist.
+    ///
+    /// # Errors
+    ///
+    /// Any I/O error other than "not found".
+    fn list(&self, dir: &Path) -> io::Result<Vec<PathBuf>>;
+
+    /// Removes a file; removing a missing file is not an error.
+    ///
+    /// # Errors
+    ///
+    /// Any I/O error other than "not found".
+    fn remove(&self, path: &Path) -> io::Result<()>;
+}
+
+/// Writes `bytes` to `path` so that it is either complete or absent after a crash: temporary
+/// file, fsync, rename, fsync of the directory.
+///
+/// # Errors
+///
+/// Any I/O error; `path` then still has its previous contents (or does not exist).
+pub fn write_atomic(fs: &impl Fs, path: &Path, bytes: &[u8]) -> io::Result<()> {
+    let mut tmp = path.as_os_str().to_owned();
+    tmp.push(".tmp");
+    let tmp = PathBuf::from(tmp);
+    fs.write_synced(&tmp, bytes)?;
+    fs.rename(&tmp, path)?;
+    let dir = match path.parent() {
+        Some(p) if !p.as_os_str().is_empty() => p.to_path_buf(),
+        _ => PathBuf::from("."),
+    };
+    fs.sync_dir(&dir)
 }
 
 /// The operating system's filesystem.
@@ -90,6 +123,30 @@ impl Fs for StdFs {
     fn sync_dir(&self, _dir: &Path) -> io::Result<()> {
         Ok(())
     }
+
+    fn list(&self, dir: &Path) -> io::Result<Vec<PathBuf>> {
+        let entries = match std::fs::read_dir(dir) {
+            Ok(entries) => entries,
+            Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(Vec::new()),
+            Err(e) => return Err(e),
+        };
+        let mut files = Vec::new();
+        for entry in entries {
+            let entry = entry?;
+            if entry.file_type()?.is_file() {
+                files.push(entry.path());
+            }
+        }
+        files.sort();
+        Ok(files)
+    }
+
+    fn remove(&self, path: &Path) -> io::Result<()> {
+        match std::fs::remove_file(path) {
+            Err(e) if e.kind() != io::ErrorKind::NotFound => Err(e),
+            _ => Ok(()),
+        }
+    }
 }
 
 /// Verifier state in one file, saved atomically and durably.
@@ -115,19 +172,6 @@ impl<F: Fs> FileStore<F> {
         FileStore {
             fs,
             path: path.into(),
-        }
-    }
-
-    fn temporary(&self) -> PathBuf {
-        let mut name = self.path.clone().into_os_string();
-        name.push(".tmp");
-        PathBuf::from(name)
-    }
-
-    fn directory(&self) -> PathBuf {
-        match self.path.parent() {
-            Some(p) if !p.as_os_str().is_empty() => p.to_path_buf(),
-            _ => PathBuf::from("."),
         }
     }
 }
@@ -170,16 +214,7 @@ impl<F: Fs> StateStore for FileStore<F> {
 
     /// @relation(AGT-010, scope=function)
     fn save(&mut self, state: &[u8]) -> Result<(), StoreError> {
-        let tmp = self.temporary();
-        self.fs
-            .write_synced(&tmp, &frame(state))
-            .map_err(|e| io_error("writing", &tmp, &e))?;
-        self.fs
-            .rename(&tmp, &self.path)
-            .map_err(|e| io_error("renaming", &tmp, &e))?;
-        let dir = self.directory();
-        self.fs
-            .sync_dir(&dir)
-            .map_err(|e| io_error("syncing", &dir, &e))
+        write_atomic(&self.fs, &self.path, &frame(state))
+            .map_err(|e| io_error("saving", &self.path, &e))
     }
 }
