@@ -230,7 +230,7 @@ STATUS: Active
 VERIFICATION: Test
 TITLE: Outbox report
 STATEMENT: >>>
-After every round the agent shall write a report (installed, applied, executed and failed actions, conflicts, withheld components, rejected and pending documents) atomically to an outbox directory.
+After every round the agent shall write a report (installed, applied, executed and failed actions, conflicts, withheld components, rejected, pending and quarantined documents) atomically to an outbox directory. Quarantined documents stay listed after the round that rejected them.
 <<<
 RATIONALE: >>>
 Reported state in weft terms, independent of how it travels (SYS-008); the adopter's tools read JSON.

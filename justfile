@@ -56,5 +56,13 @@ doc:
 requirements:
     strictdoc export . --formats=html,reqif-sdoc --output-dir target/requirements
 
-# Everything CI checks.
+# NixOS VM end-to-end test (Linux with KVM): shipped systemd units, USB sticks, power cut.
+vm:
+    nix build .#checks.$(nix eval --impure --raw --expr builtins.currentSystem).l1-vm --override-input weft-verifier git+file:../weft-verifier -L
+
+# The VM test with an interactive driver: start_all(), run steps by hand, inspect the VM.
+vm-interactive:
+    nix run .#checks.$(nix eval --impure --raw --expr builtins.currentSystem).l1-vm.driverInteractive --override-input weft-verifier git+file:../weft-verifier
+
+# Everything CI checks (the VM test runs as its own CI job).
 ci: fmt-check clippy test targets deny licenses typos doc requirements

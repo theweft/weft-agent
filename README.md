@@ -39,11 +39,12 @@ Each round (every `--interval` seconds, or once with `--once`):
 3. writes the effective configuration to `<config-dir>/<component>.json` and runs `--on-config`;
    runs `--on-install` with `WEFT_COMPONENT` and `WEFT_ARTIFACT` (SHA-256) for installs;
 4. writes `<state-dir>/outbox/report.json`: installed, applied, executed, failed, conflicts,
-   withheld, rejected, pending.
+   withheld, rejected, pending, quarantined.
 
 Documents are made with [weft-cli](https://github.com/theweft/weft-cli) (`weft config`, `weft
 deploy`, ...). Hooks are run with values only in environment variables and at least once, so
-they must be idempotent. The system clock is not trusted unless `--trust-system-clock` is given.
+they must be idempotent, and exit successfully only once their effect is durable (weft records success
+durably and does not repeat it). Hooks run with `/bin/sh -c`. The system clock is not trusted unless `--trust-system-clock` is given.
 
 ### Separated: unprivileged decider, privileged executor
 
@@ -59,6 +60,21 @@ only typed instructions over a Unix socket (`root:weft`, 0660): *apply this conf
 *install this artifact*. The executor re-checks the configuration hash and the component path,
 refuses everything else, and runs the hooks it was configured with; the decider cannot name a
 command or a directory. `weft-agent run` keeps both in one process.
+
+### End-to-end test in a VM
+
+[tests/vm/l1.nix](tests/vm/l1.nix) boots NixOS with the shipped units from
+[dist/systemd/](dist/systemd/) and two read-only USB sticks of signed documents
+([tests/vm/fixtures/](tests/vm/fixtures/), regenerated and checked by `cargo test`). It checks:
+
+- stick 1: configuration applied and the artifact installed exactly once;
+- the running decider is sandboxed: user `weft`, no capabilities, `NoNewPrivs`, its own network
+  namespace, a read-only system, and a `systemd-analyze security` exposure of at most 2.5;
+- stick 2, then a **power cut** at a random moment of the round: after the reboot the
+  configuration is one of the two versions, whole; then it converges to the new one, the forged
+  document is rejected and not stored, and nothing is installed twice.
+
+Run it with `just vm` (Linux with KVM); CI runs it as a separate job.
 
 ## Crates
 

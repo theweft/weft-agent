@@ -214,6 +214,13 @@ fn usb_stick_to_applied_config_and_installed_artifact() {
             .exists()
     );
     assert_eq!(d.config(), serde_json::json!({"rate": 7}));
+    // Still listed in later rounds, after it stopped being seen.
+    let r = d.run("usb2", INSTALL);
+    let quarantined = r["quarantined"].as_array().unwrap();
+    assert!(
+        quarantined.iter().any(|x| x == &hex(&sha256(&forged))),
+        "{r}"
+    );
 }
 
 /// @relation(AGT-015, AGT-016, scope=function)

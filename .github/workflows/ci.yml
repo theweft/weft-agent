@@ -24,6 +24,43 @@ jobs:
           path: weft-verifier
           persist-credentials: false
       - uses: cachix/install-nix-action@v31
+      # Nix store in the GitHub Actions cache: toolchain, crates and the VM closure are reused.
+      - uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ github.job }}-${{ hashFiles('weft-agent/flake.lock', 'weft-agent/Cargo.lock', 'weft-agent/rust-toolchain.toml') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-${{ github.job }}-
+          gc-max-store-size-linux: 4G
       # Same pinned environment as local development.
       - run: nix develop --command just ci
         working-directory: weft-agent
+
+  vm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: weft-agent
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: theweft/weft-verifier
+          path: weft-verifier
+          persist-credentials: false
+      # GitHub's Linux runners have KVM, but /dev/kvm is not accessible to the runner user by default.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: system-features = nixos-test benchmark big-parallel kvm
+      # Nix store in the GitHub Actions cache: toolchain, crates and the VM closure are reused.
+      - uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ github.job }}-${{ hashFiles('weft-agent/flake.lock', 'weft-agent/Cargo.lock', 'weft-agent/rust-toolchain.toml') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-${{ github.job }}-
+          gc-max-store-size-linux: 4G
+      - name: NixOS VM end-to-end test
+        working-directory: weft-agent
+        run: nix build .#checks.x86_64-linux.l1-vm --override-input weft-verifier git+file:../weft-verifier -L

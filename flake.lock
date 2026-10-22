@@ -19,7 +19,8 @@
     "root": {
       "inputs": {
         "nixpkgs": "nixpkgs",
-        "rust-overlay": "rust-overlay"
+        "rust-overlay": "rust-overlay",
+        "weft-verifier": "weft-verifier"
       }
     },
     "rust-overlay": {
@@ -39,6 +40,22 @@
       "original": {
         "owner": "oxalica",
         "repo": "rust-overlay",
+        "type": "github"
+      }
+    },
+    "weft-verifier": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1792523798,
+        "narHash": "sha256-V/rafesZr+AnhPTP+MCg8zMcswWR4FkdAB2lJg31jic=",
+        "owner": "theweft",
+        "repo": "weft-verifier",
+        "rev": "ebbff12379f5a8b734dcdb07514ec64f148c1000",
+        "type": "github"
+      },
+      "original": {
+        "owner": "theweft",
+        "repo": "weft-verifier",
         "type": "github"
       }
     }

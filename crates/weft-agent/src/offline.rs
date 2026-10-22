@@ -208,6 +208,8 @@ impl<E: Executor> OfflineAgent<E> {
             "accepted": hexes(&d.accepted),
             "rejected": d.rejected.iter().map(|r| json!({"document": hex(&r.digest), "reason": format!("{:?}", r.reason)})).collect::<Vec<_>>(),
             "pending": self.sync.pending().iter().map(|x| hex(x)).collect::<Vec<_>>(),
+            // Stays listed after the round that rejected them (they are not seen again).
+            "quarantined": self.sync.quarantined().iter().map(|x| hex(x)).collect::<Vec<_>>(),
         })
     }
 

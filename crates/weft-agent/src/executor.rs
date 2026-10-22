@@ -9,11 +9,12 @@
 //! - **Install**: the `on_install` hook runs; it hands the artifact digest to the adopter's own
 //!   OTA tool (`SWUpdate`, Mender, a script). Without a hook, installs fail and are reported.
 //!
-//! Hooks are commands from the local configuration (trusted). Values from documents reach them
+//! Hooks are commands from the local configuration (trusted), run with `/bin/sh -c`. Values from documents reach them
 //! only as environment variables, never interpolated into the command: `WEFT_COMPONENT`,
 //! `WEFT_CONFIG`, `WEFT_CONFIG_HASH`, `WEFT_ARTIFACT`. Delivery is at least once: after a crash
 //! between running a hook and saving the result, the hook runs again, so hooks must be
-//! idempotent.
+//! idempotent. A hook must exit successfully only once its effect is durable (an OTA tool has
+//! written and synced the new slot): weft records success durably and will not repeat it.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -69,9 +70,11 @@ pub fn config_path(dir: &Path, component: &str) -> Result<PathBuf, ExecError> {
 }
 
 fn run_hook(command: &str, env: &[(&str, String)]) -> Result<(), ExecError> {
+    // An absolute shell: services often run with a minimal PATH (NixOS has no shell in it), and
+    // a PATH lookup would let whoever controls PATH choose the shell.
     #[cfg(unix)]
     let mut cmd = {
-        let mut c = Command::new("sh");
+        let mut c = Command::new("/bin/sh");
         c.arg("-c").arg(command);
         c
     };
