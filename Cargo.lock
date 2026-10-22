@@ -490,6 +490,8 @@ name = "weft-decider"
 version = "0.0.1"
 dependencies = [
  "ed25519-dalek",
+ "tokio",
+ "turmoil",
  "weft-verifier",
 ]
 

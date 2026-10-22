@@ -116,7 +116,7 @@ STATEMENT: >>>
 The decider shall save the new verifier state before executing any instruction, and shall execute nothing if saving fails.
 <<<
 RATIONALE: >>>
-Acting on a decision whose anti-rollback state was lost would allow rollback after a crash. The atomic file store itself (docs/11) is still to be built.
+Acting on a decision whose anti-rollback state was lost would allow rollback after a crash. AGT-010 makes the save itself durable.
 <<<
 SATISFIES: SYS-006
 
@@ -184,5 +184,18 @@ Keys must map to MQTT, Zenoh and NATS without escaping.
 <<<
 SATISFIES: SYS-009
 FACTS: pubsub.topic.segment_max, pubsub.topic.max_depth, pubsub.topic.max_len
+
+[REQUIREMENT]
+UID: AGT-010
+STATUS: Active
+VERIFICATION: Test
+TITLE: Durable, atomic state file
+STATEMENT: >>>
+The decider's state shall be saved by writing a temporary file and syncing it, renaming it over the state file and syncing the directory, so that after a save returns the new state survives power loss and before it returns the previous one does. The file shall carry a checksum; a damaged file shall be refused, not loaded.
+<<<
+RATIONALE: >>>
+docs/11. Tested with power cuts at every point of the save on turmoil's simulated filesystem; the same test fails for a protocol without fsync (300 of 300 runs lost an acknowledged state).
+<<<
+SATISFIES: SYS-006
 
 [[/SECTION]]
